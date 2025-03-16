@@ -153,8 +153,8 @@ if __name__ == "__main__":
     n_layers = len(layers)
 
 
-    level0 = Level(level_id=0, workers=1, bandwidth=None)
-    level1 = Level(level_id=1, workers=2, bandwidth=10)
+    level0 = Level(level_id=0, workers=1, bandwidth=2048)
+    level1 = Level(level_id=1, workers=2, bandwidth=600)
 
     levels = [level0, level1]
 
