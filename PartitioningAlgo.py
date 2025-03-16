@@ -1,13 +1,4 @@
 class Layer:
-    """
-    Represents a single layer in a deep neural network.
-
-    Attributes:
-      index (int): The index (position) of the layer in the network.
-      compute_time (float): Time required for both forward and backward passes (Tₗ).
-      activation_size (float): Size (e.g., in bytes) of the output activations produced by this layer (aₗ).
-      weight_size (float): Size (e.g., in bytes) of the layer's weight parameters (wₗ).
-    """
     def __init__(self, index, compute_time, activation_size, weight_size):
         self.index = index
         self.compute_time = compute_time
@@ -16,15 +7,6 @@ class Layer:
 
 
 class Level:
-    """
-    Represents a hardware level in a hierarchical system (for example, a single GPU or a server).
-
-    Attributes:
-      level_id (int): Identifier for the level (e.g., 0 for a single device, 1 for a group/server level).
-      workers (int): Number of compute devices available at this level.
-      bandwidth (float or None): Communication bandwidth at this level (e.g., in bytes per time unit).
-                                 For level 0 (a single device), this is None since no communication is needed.
-    """
     def __init__(self, level_id, workers, bandwidth=None):
         self.level_id = level_id
         self.workers = workers
@@ -32,18 +14,6 @@ class Level:
 
 
 def A0(i, j):
-    """
-    Compute the baseline (device-level) compute time for layers i..j (inclusive).
-
-    This is the sum of compute times (Tₗ) of layers with indices from i to j.
-
-    Args:
-      i (int): The starting layer index (0-based).
-      j (int): The ending layer index (0-based).
-
-    Returns:
-      float: The total compute time (sum of Tₗ for layers i through j).
-    """
     total = 0
     for k in range(i, j + 1):
         total += layers[k].compute_time
@@ -51,29 +21,6 @@ def A0(i, j):
 
 
 def dp(k, i, j, m):
-    """
-    Compute the optimal (minimal bottleneck) cost and partition for processing layers i..j 
-    at hardware level k using m workers.
-
-    This dynamic programming function recursively partitions the network into stages, 
-    balancing computation (from lower levels) and communication costs. It returns both 
-    the optimal cost (bottleneck time) and a partition (a list of tuples) indicating the stages 
-    and transition (split) points.
-
-    Args:
-      k (int): The current hardware level. Level 0 is the base (a single device), while higher levels 
-               represent groups of devices.
-      i (int): The starting layer index (0-based) for the subproblem.
-      j (int): The ending layer index (0-based) for the subproblem.
-      m (int): The number of workers available at level k for processing layers i..j.
-
-    Returns:
-      tuple: A tuple (cost, partition) where:
-          cost (float): The optimal (minimum bottleneck) cost for processing layers i..j.
-          partition (list): A list of tuples describing the partition:
-              - ("stage", i, j, m, k): Indicates a stage covering layers i..j at level k using m workers.
-              - ("transition", s): Indicates a transition (split) at layer s.
-    """
     global dp_cache
     key = (k, i, j, m)
     if key in dp_cache:
@@ -113,26 +60,6 @@ def dp(k, i, j, m):
 
 
 def T_func_partition(k, i, j, m):
-    """
-    Compute the effective stage time and partition for processing layers i..j 
-    as a single stage at hardware level k using m workers.
-
-    The effective time is defined as (1/m) times the maximum of:
-      - The computation cost from the lower level: dp(k-1, i, j, levels[k-1].workers)
-      - The communication cost: [2 * (m - 1) * total_weight] / levels[k].bandwidth,
-        where total_weight is the sum of weight sizes (wₗ) for layers i..j.
-
-    Args:
-      k (int): The current hardware level.
-      i (int): The starting layer index (0-based) for this stage.
-      j (int): The ending layer index (0-based) for this stage.
-      m (int): The number of workers allocated for this stage at level k.
-
-    Returns:
-      tuple: A tuple (cost, partition) where:
-          cost (float): The effective stage time.
-          partition (list): A list with a single tuple ("stage", i, j, m, k) representing this stage.
-    """
     base_cost, base_part = dp(k - 1, i, j, levels[k - 1].workers)
     total_weight = 0
     for k_idx in range(i, j + 1):
@@ -153,8 +80,8 @@ if __name__ == "__main__":
     n_layers = len(layers)
 
 
-    level0 = Level(level_id=0, workers=1, bandwidth=2048)
-    level1 = Level(level_id=1, workers=2, bandwidth=600)
+    level0 = Level(level_id=1, workers=4, bandwidth=50)
+    level1 = Level(level_id=2, workers=2, bandwidth=5)
 
     levels = [level0, level1]
 
